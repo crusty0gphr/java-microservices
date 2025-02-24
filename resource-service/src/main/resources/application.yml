@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: resource-service
+  datasource:
+    name: resource-db
+    username: postgres
+    password: postgres
+    url: jdbc:postgresql://localhost:5432/resource-db
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 6969
+
+external:
+  services:
+    song-service-host: http://localhost:6868
