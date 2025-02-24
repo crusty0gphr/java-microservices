@@ -3,6 +3,7 @@ package com.harut.resourceservice.services;
 import com.harut.resourceservice.configs.ServiceConfigs;
 import com.harut.resourceservice.dto.GetResourceResponse;
 import com.harut.resourceservice.dto.SaveResourceResponse;
+import com.harut.resourceservice.dto.SongServiceRequest;
 import com.harut.resourceservice.exceptions.BadRequestException;
 import com.harut.resourceservice.exceptions.EntityNotFoundException;
 import com.harut.resourceservice.exceptions.ProcessingException;
@@ -15,8 +16,10 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.mp3.Mp3Parser;
 import org.apache.tika.sax.BodyContentHandler;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.xml.sax.SAXException;
@@ -92,12 +95,27 @@ public class ResourceService {
 		}
 	}
 
-	public void sendMetadata(Map<String, String> metadata) {
-		String url = this.configs.getSongServiceUrl();
+	public SongServiceRequest sendMetadata(Long resourceId, Map<String, String> metadata) {
+		String url = this.configs.getSongServiceUrl() + "/songs";
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 
-		throw new BadRequestException("Metadata sending failed: http not configured");
-	}
+		SongServiceRequest data = new SongServiceRequest();
+		data.setId(resourceId);
+		data.setName(metadata.get("title"));
+		data.setArtist(metadata.get("artist"));
+		data.setYear(metadata.get("releaseDate"));
+		data.setAlbum(metadata.get("album"));
+		data.setDuration(metadata.get("duration"));
+
+		HttpEntity<SongServiceRequest> entity = new HttpEntity<>(data, headers);
+		ResponseEntity<SongServiceRequest> response = restTemplate.postForEntity(url, entity, SongServiceRequest.class);
+
+		if (response.getStatusCode().is2xxSuccessful()){
+			return response.getBody();
+		} else {
+			throw new BadRequestException("Failed sending metadata: " + response.getStatusCode());
+		}
+    }
 }
