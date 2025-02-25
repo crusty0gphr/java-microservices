@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Setter;
 
 @Setter
-public class SongServiceRequest {
+public class SongsServiceRequest {
 	@JsonProperty("id")
 	private Long id;
 

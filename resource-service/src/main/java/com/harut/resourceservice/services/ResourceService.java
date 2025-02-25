@@ -3,7 +3,8 @@ package com.harut.resourceservice.services;
 import com.harut.resourceservice.configs.ServiceConfigs;
 import com.harut.resourceservice.dto.GetResourceResponse;
 import com.harut.resourceservice.dto.SaveResourceResponse;
-import com.harut.resourceservice.dto.SongServiceRequest;
+import com.harut.resourceservice.dto.SongsServiceRequest;
+import com.harut.resourceservice.dto.SongsServiceResponse;
 import com.harut.resourceservice.exceptions.BadRequestException;
 import com.harut.resourceservice.exceptions.EntityNotFoundException;
 import com.harut.resourceservice.exceptions.ProcessingException;
@@ -27,6 +28,7 @@ import org.xml.sax.SAXException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -42,16 +44,14 @@ public class ResourceService {
 		model.setResource(file);
 		model.setDateCreated(LocalTime.now());
 
-		this.resourceRepo.save(model);
-
-		Resource saved = resourceRepo.save(model);
+		Resource saved = this.resourceRepo.save(model);
 		SaveResourceResponse result = new SaveResourceResponse();
 		result.setId(saved.getId());
 
 		return result;
 	}
 
-	public GetResourceResponse getResourceById(Long id) {
+	public GetResourceResponse getById(Long id) {
 		Resource resource = this.resourceRepo
 				.findById(id)
 				.orElseThrow(() -> new EntityNotFoundException("Failed retrieving resource by id: " + id));
@@ -64,7 +64,7 @@ public class ResourceService {
 		return result;
 	}
 
-	public void deleteByIds(Long[] ids) {
+	public void deleteAllByIds(Long[] ids) {
 		this.resourceRepo.deleteAllById(List.of(ids));
 	}
 
@@ -95,13 +95,13 @@ public class ResourceService {
 		}
 	}
 
-	public SongServiceRequest sendMetadata(Long resourceId, Map<String, String> metadata) {
+	public SongsServiceResponse sendMetadata(Long resourceId, Map<String, String> metadata) {
 		String url = this.configs.getSongServiceUrl() + "/songs";
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 
-		SongServiceRequest data = new SongServiceRequest();
+		SongsServiceRequest data = new SongsServiceRequest();
 		data.setId(resourceId);
 		data.setName(metadata.get("title"));
 		data.setArtist(metadata.get("artist"));
@@ -109,8 +109,8 @@ public class ResourceService {
 		data.setAlbum(metadata.get("album"));
 		data.setDuration(metadata.get("duration"));
 
-		HttpEntity<SongServiceRequest> entity = new HttpEntity<>(data, headers);
-		ResponseEntity<SongServiceRequest> response = restTemplate.postForEntity(url, entity, SongServiceRequest.class);
+		HttpEntity<SongsServiceRequest> entity = new HttpEntity<>(data, headers);
+		ResponseEntity<SongsServiceResponse> response = restTemplate.postForEntity(url, entity, SongsServiceResponse.class);
 
 		if (response.getStatusCode().is2xxSuccessful()){
 			return response.getBody();
@@ -118,4 +118,13 @@ public class ResourceService {
 			throw new BadRequestException("Failed sending metadata: " + response.getStatusCode());
 		}
     }
+
+	public void deleteSongs(Long[] ids) {
+		String queryParams = "?id=" + String.join(",", Arrays.stream(ids)
+				.map(String::valueOf)
+				.toArray(String[]::new));
+		String url = this.configs.getSongServiceUrl() + "/songs" + queryParams;
+
+		restTemplate.delete(url);
+	}
 }

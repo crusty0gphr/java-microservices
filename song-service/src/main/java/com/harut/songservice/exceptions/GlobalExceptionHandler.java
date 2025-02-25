@@ -1,4 +1,4 @@
-package com.harut.resourceservice.exceptions;
+package com.harut.songservice.exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,12 +22,6 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(EntityNotFoundException.class)
 	public ResponseEntity<Map<String, Object>> handleBadRequest(EntityNotFoundException ex) {
 		return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), "NOT_FOUND");
-	}
-
-	// Handle ProcessingException with 400 BAD_REQUEST
-	@ExceptionHandler(ProcessingException.class)
-	public ResponseEntity<Map<String, Object>> handleProcessingException(ProcessingException ex) {
-		return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), "BAD_REQUEST");
 	}
 
 	// Handle Generic Exception (fallback for other unhandled exceptions)
