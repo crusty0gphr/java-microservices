@@ -1,11 +1,11 @@
 package com.harut.resourceservice.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Setter;
+import lombok.Data;
 
 import java.time.LocalTime;
 
-@Setter
+@Data
 public class GetResourceResponse {
 	@JsonProperty("id")
 	private Long id;

@@ -1,7 +1,9 @@
 package com.harut.songservice.services;
 
+import com.harut.songservice.dto.DeleteSongsResponse;
 import com.harut.songservice.dto.SongEntity;
 import com.harut.songservice.dto.SongsResponse;
+import com.harut.songservice.exceptions.EntityAlreadyExistsException;
 import com.harut.songservice.exceptions.EntityNotFoundException;
 import com.harut.songservice.models.Song;
 import com.harut.songservice.repos.SongsRepo;
@@ -17,6 +19,13 @@ public class SongsService {
 	private final SongsRepo songsRepo;
 
 	public SongsResponse saveSong(SongEntity song) {
+		song.validate();
+
+		Long exists = this.songsRepo.songExists(song.getId());
+		if (exists != null && exists > 0) {
+			throw new EntityAlreadyExistsException("Song with id " + song.getId() + " already exists");
+		}
+
 		Song model = new Song();
 		model.setId(song.getId());
 		model.setName(song.getName());
@@ -48,7 +57,13 @@ public class SongsService {
 		return result;
 	}
 
-	public void deleteAllByIds(Long[] ids) {
-		this.songsRepo.deleteAllById(List.of(ids));
+	public DeleteSongsResponse deleteAllByIds(Long[] ids) {
+		List<Long> existingIds = this.songsRepo.filterExistingIds(List.of(ids));
+		this.songsRepo.deleteAllById(existingIds);
+
+		DeleteSongsResponse result = new DeleteSongsResponse();
+		result.setIds(existingIds.toArray(Long[]::new));
+
+		return result;
 	}
 }

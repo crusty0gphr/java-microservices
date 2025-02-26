@@ -1,5 +1,6 @@
 package com.harut.songservice.controllers;
 
+import com.harut.songservice.dto.DeleteSongsResponse;
 import com.harut.songservice.dto.SongEntity;
 import com.harut.songservice.dto.SongsResponse;
 import com.harut.songservice.exceptions.BadRequestException;
@@ -35,21 +36,21 @@ public class SongsController {
 	}
 
 	@DeleteMapping
-	public ResponseEntity<Long[]> deleteSongs(@RequestParam(value = "id", required = false) String csv) {
+	public ResponseEntity<DeleteSongsResponse> deleteSongs(@RequestParam(value = "id", required = false) String csv) {
 		if (csv == null || csv.isEmpty()) {
-			throw new com.harut.resourceservice.exceptions.BadRequestException("No ids provided.");
+			throw new BadRequestException("No ids provided.");
 		}
 
 		if (csv.length() > 200) {
-			throw new com.harut.resourceservice.exceptions.BadRequestException("Ids out of range");
+			throw new BadRequestException("Ids out of range");
 		}
 
 		Long[] ids = Arrays.stream(csv.split(","))
 				.map(Long::valueOf)
 				.toArray(Long[]::new);
 
-		this.songsService.deleteAllByIds(ids);
+		var response = this.songsService.deleteAllByIds(ids);
 
-		return ResponseEntity.ok(ids);
+		return ResponseEntity.ok(response);
 	}
 }

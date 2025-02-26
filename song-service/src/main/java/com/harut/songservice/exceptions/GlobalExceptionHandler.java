@@ -24,6 +24,12 @@ public class GlobalExceptionHandler {
 		return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), "NOT_FOUND");
 	}
 
+	// Handle EntityAlreadyExistsException with 409 BAD_REQUEST
+	@ExceptionHandler(EntityAlreadyExistsException.class)
+	public ResponseEntity<Map<String, Object>> handleBadRequest(EntityAlreadyExistsException ex) {
+		return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), "CONFLICT");
+	}
+
 	// Handle Generic Exception (fallback for other unhandled exceptions)
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {

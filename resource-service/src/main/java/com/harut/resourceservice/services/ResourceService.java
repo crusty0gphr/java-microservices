@@ -1,10 +1,7 @@
 package com.harut.resourceservice.services;
 
 import com.harut.resourceservice.configs.ServiceConfigs;
-import com.harut.resourceservice.dto.GetResourceResponse;
-import com.harut.resourceservice.dto.SaveResourceResponse;
-import com.harut.resourceservice.dto.SongsServiceRequest;
-import com.harut.resourceservice.dto.SongsServiceResponse;
+import com.harut.resourceservice.dto.*;
 import com.harut.resourceservice.exceptions.BadRequestException;
 import com.harut.resourceservice.exceptions.EntityNotFoundException;
 import com.harut.resourceservice.exceptions.ProcessingException;
@@ -64,8 +61,14 @@ public class ResourceService {
 		return result;
 	}
 
-	public void deleteAllByIds(Long[] ids) {
-		this.resourceRepo.deleteAllById(List.of(ids));
+	public DeleteResourceResponse deleteAllByIds(Long[] ids) {
+		List<Long> existingIds = this.resourceRepo.filterExistingIds(List.of(ids));
+		this.resourceRepo.deleteAllById(existingIds);
+
+		DeleteResourceResponse result = new DeleteResourceResponse();
+		result.setIds(existingIds.toArray(Long[]::new));
+
+		return result;
 	}
 
 	public Map<String, String> extractMetadata(byte[] file) {
@@ -107,17 +110,17 @@ public class ResourceService {
 		data.setArtist(metadata.get("artist"));
 		data.setYear(metadata.get("releaseDate"));
 		data.setAlbum(metadata.get("album"));
-		data.setDuration(metadata.get("duration"));
+		data.setDuration(ResourceUtils.formatDuration(metadata.get("duration")));
 
 		HttpEntity<SongsServiceRequest> entity = new HttpEntity<>(data, headers);
 		ResponseEntity<SongsServiceResponse> response = restTemplate.postForEntity(url, entity, SongsServiceResponse.class);
 
-		if (response.getStatusCode().is2xxSuccessful()){
+		if (response.getStatusCode().is2xxSuccessful()) {
 			return response.getBody();
 		} else {
 			throw new BadRequestException("Failed sending metadata: " + response.getStatusCode());
 		}
-    }
+	}
 
 	public void deleteSongs(Long[] ids) {
 		String queryParams = "?id=" + String.join(",", Arrays.stream(ids)

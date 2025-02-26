@@ -1,18 +1,17 @@
 package com.harut.resourceservice.controllers;
 
-import com.harut.resourceservice.dto.GetResourceResponse;
+import com.harut.resourceservice.dto.DeleteResourceResponse;
 import com.harut.resourceservice.dto.SaveResourceResponse;
 import com.harut.resourceservice.exceptions.BadRequestException;
-import com.harut.resourceservice.exceptions.ProcessingException;
 import com.harut.resourceservice.services.ResourceService;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
-import java.util.List;
 
 @RestController
 @RequestMapping("/resources")
@@ -30,18 +29,23 @@ public class ResourceController {
 		return ResponseEntity.ok(response);
 	}
 
-	@GetMapping("/{id}")
-	public ResponseEntity<GetResourceResponse> getResource(@PathVariable Long id) {
+	@GetMapping(value = "/{id}", produces = "audio/mpeg")
+	public ResponseEntity<byte[]> getResource(@PathVariable Long id) {
 		if (id <= 0) {
 			throw new BadRequestException("Id must be a positive number");
 		}
 
 		var response = this.resourceService.getById(id);
-		return ResponseEntity.ok(response);
+		var resource = response.getResource();
+
+		return ResponseEntity.ok()
+				.contentType(MediaType.parseMediaType("audio/mpeg"))
+				.contentLength(resource.length)
+				.body(resource);
 	}
 
 	@DeleteMapping
-	public ResponseEntity<Boolean> deleteResource(@RequestParam(value = "id", required = false) String csv) {
+	public ResponseEntity<DeleteResourceResponse> deleteResource(@RequestParam(value = "id", required = false) String csv) {
 		if (csv == null || csv.isEmpty()) {
 			throw new BadRequestException("No ids provided.");
 		}
@@ -54,9 +58,9 @@ public class ResourceController {
 				.map(Long::valueOf)
 				.toArray(Long[]::new);
 
-		this.resourceService.deleteAllByIds(ids);
+		var response = this.resourceService.deleteAllByIds(ids);
 		this.resourceService.deleteSongs(ids);
 
-		return ResponseEntity.ok(true);
+		return ResponseEntity.ok(response);
 	}
 }
