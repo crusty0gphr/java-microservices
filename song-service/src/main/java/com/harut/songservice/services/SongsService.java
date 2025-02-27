@@ -3,6 +3,7 @@ package com.harut.songservice.services;
 import com.harut.songservice.dto.DeleteSongsResponse;
 import com.harut.songservice.dto.SongEntity;
 import com.harut.songservice.dto.SongsResponse;
+import com.harut.songservice.exceptions.BadRequestException;
 import com.harut.songservice.exceptions.EntityAlreadyExistsException;
 import com.harut.songservice.exceptions.EntityNotFoundException;
 import com.harut.songservice.models.Song;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -43,8 +45,12 @@ public class SongsService {
 	}
 
 	public SongEntity getById(Long id) {
+		if (id <= 0) {
+			throw new BadRequestException("Invalid value '" + id + "' for ID. Must be a positive integer.");
+		}
+
 		Song model = this.songsRepo.findById(id)
-				.orElseThrow(() -> new EntityNotFoundException("Failed retrieving song by id: " + id));
+				.orElseThrow(() -> new EntityNotFoundException("Song with ID=" + id + " not found."));
 
 		SongEntity result = new SongEntity();
 		result.setId(model.getId());
@@ -57,7 +63,24 @@ public class SongsService {
 		return result;
 	}
 
-	public DeleteSongsResponse deleteAllByIds(Long[] ids) {
+	public DeleteSongsResponse deleteAllByIds(String csv) {
+		if (csv == null || csv.isEmpty()) {
+			return null;
+		}
+
+		if (csv.length() > 200) {
+			throw new BadRequestException("CSV string is too long: received " + csv.length() + " characters, maximum allowed is 200.");
+		}
+
+		Long[] ids = Arrays.stream(csv.split(","))
+				.peek(item -> {
+					if (!item.matches("\\d+") || Long.parseLong(item) <= 0) {
+						throw new IllegalArgumentException("Invalid value '" + item + "' for ID. Must be a positive integer.");
+					}
+				})
+				.map(Long::valueOf)
+				.toArray(Long[]::new);
+
 		List<Long> existingIds = this.songsRepo.filterExistingIds(List.of(ids));
 		this.songsRepo.deleteAllById(existingIds);
 

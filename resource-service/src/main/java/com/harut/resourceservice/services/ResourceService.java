@@ -4,6 +4,7 @@ import com.harut.resourceservice.configs.ServiceConfigs;
 import com.harut.resourceservice.dto.*;
 import com.harut.resourceservice.exceptions.BadRequestException;
 import com.harut.resourceservice.exceptions.EntityNotFoundException;
+import com.harut.resourceservice.exceptions.InvalidContentTypeException;
 import com.harut.resourceservice.exceptions.ProcessingException;
 import com.harut.resourceservice.models.Resource;
 import com.harut.resourceservice.repos.ResourceRepo;
@@ -48,10 +49,14 @@ public class ResourceService {
 		return result;
 	}
 
-	public GetResourceResponse getById(Long id) {
+	public GetResourceResponse getById(String id) {
+		if (!id.matches("\\d+") || Long.parseLong(id) <= 0) {
+			throw new IllegalArgumentException("Invalid value '" + id + "' for ID. Must be a positive integer.");
+		}
+
 		Resource resource = this.resourceRepo
-				.findById(id)
-				.orElseThrow(() -> new EntityNotFoundException("Failed retrieving resource by id: " + id));
+				.findById(Long.parseLong(id))
+				.orElseThrow(() -> new EntityNotFoundException("Resource with ID=" + id + " not found."));
 
 		GetResourceResponse result = new GetResourceResponse();
 		result.setId(resource.getId());
@@ -61,7 +66,24 @@ public class ResourceService {
 		return result;
 	}
 
-	public DeleteResourceResponse deleteAllByIds(Long[] ids) {
+	public DeleteResourceResponse deleteAllByIds(String csv) {
+		if (csv == null || csv.isEmpty()) {
+			return null;
+		}
+
+		if (csv.length() > 200) {
+			throw new BadRequestException("CSV string is too long: received " + csv.length() + " characters, maximum allowed is 200.");
+		}
+
+		Long[] ids = Arrays.stream(csv.split(","))
+				.peek(item -> {
+					if (!item.matches("\\d+") || Long.parseLong(item) <= 0) {
+						throw new IllegalArgumentException("Invalid value '" + item + "' for ID. Must be a positive integer.");
+					}
+				})
+				.map(Long::valueOf)
+				.toArray(Long[]::new);
+
 		List<Long> existingIds = this.resourceRepo.filterExistingIds(List.of(ids));
 		this.resourceRepo.deleteAllById(existingIds);
 
@@ -129,5 +151,11 @@ public class ResourceService {
 		String url = this.configs.getSongServiceUrl() + "/songs" + queryParams;
 
 		restTemplate.delete(url);
+	}
+
+	public void verifyContentType(String contentType) {
+		if (!contentType.equals("audio/mpeg")) {
+			throw new InvalidContentTypeException("Invalid file format: " + contentType + ". Only MP3 files are allowed");
+		}
 	}
 }

@@ -3,13 +3,14 @@ package com.harut.songservice.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.harut.songservice.exceptions.BadRequestException;
 import lombok.Data;
+import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Data
 public class SongEntity {
-	private List<String> validationErrors = new ArrayList<>();
+	private Map<String, String> validationErrors = new HashMap<>();
 
 	@JsonProperty("id")
 	private Long id;
@@ -37,70 +38,71 @@ public class SongEntity {
 		this.validateYear();
 
 		if (!this.validationErrors.isEmpty()) {
-			throw new BadRequestException(this.validationErrors.toString());
+			throw new BadRequestException("Validation failed.", this.validationErrors);
 		}
 	}
 
 	private void validateName() {
-		if (this.name == null) {
-			this.validationErrors.add("Field name is not provided.");
-		}
+		validateStringField("name", this.name, 100);
+	}
 
-		if (this.name.length() > 100 || this.name.isEmpty()) {
-			this.validationErrors.add("Field name must be 1-100 characters text.");
-		}
+	private void validateAlbum() {
+		validateStringField("album", this.album, 100);
+	}
+
+	private void validateArtist() {
+		validateStringField("artist", this.artist, 100);
 	}
 
 	private void validateDuration() {
-		if (this.duration == null || this.album.isEmpty()) {
-			this.validationErrors.add("Field artist is not provided.");
+		if (this.duration == null || this.duration.isEmpty()) {
+			this.validationErrors.put("duration", "Duration is not provided.");
+			return;
 		}
 
+		// Check format (mm:ss)
 		if (!this.duration.matches("^\\d{2}:\\d{2}$")) {
-			this.validationErrors.add("Field year must be in the format YYYY.");
+			this.validationErrors.put("duration", "Duration must be in mm:ss format with leading zeros.");
+			return;
 		}
 
 		String[] split = this.duration.split(":");
 		int minutes = Integer.parseInt(split[0]);
 		int seconds = Integer.parseInt(split[1]);
 
+		// Validate minutes and seconds
 		if (minutes >= 60 || seconds >= 60) {
-			this.validationErrors.add("Field duration is invalid.");
-		}
-	}
-
-	private void validateAlbum() {
-		if (this.album == null) {
-			this.validationErrors.add("Field album is not provided.");
-		}
-
-		if (this.album.length() > 100 || this.album.isEmpty()) {
-			this.validationErrors.add("Field album must be 1-100 characters text.");
-		}
-	}
-
-	private void validateArtist() {
-		if (this.artist == null) {
-			this.validationErrors.add("Field artist is not provided.");
-		}
-
-		if (this.artist.length() > 100 || this.artist.isEmpty()) {
-			this.validationErrors.add("Field artist must be 1-100 characters text.");
+			this.validationErrors.put("duration", "Duration must be in in mm:ss format with mm less then 60 and ss less then 60.");
 		}
 	}
 
 	private void validateYear() {
-		if (this.year == null) {
-			this.validationErrors.add("Field year is not provided.");
+		if (this.year == null || this.year.isEmpty()) {
+			this.validationErrors.put("year", "Year is not provided.");
+			return;
 		}
 
+		// Check format using regex
 		if (!this.year.matches("^(19|20)\\d{2}$")) {
-			this.validationErrors.add("Field year must be in the format YYYY.");
+			this.validationErrors.put("year", "Year must be in the format YYYY.");
+			return;
 		}
 
-		int val = Integer.parseInt(this.year);
-		if (val < 1900 || val > 2099) {
-			this.validationErrors.add("Field year must be in between 1900 and 2099.");
+		// Check numeric range
+		int yearValue = Integer.parseInt(this.year);
+		if (yearValue < 1900 || yearValue > 2099) {
+			this.validationErrors.put("year", "Year must be between 1900 and 2099.");
+		}
+	}
+
+	private void validateStringField(String fieldName, String fieldValue, int maxLength) {
+		if (fieldValue == null || fieldValue.isEmpty()) {
+			this.validationErrors.put(fieldName, StringUtils.capitalize(fieldName) + " is not provided.");
+			return;
+		}
+
+		if (fieldValue.length() > maxLength) {
+			this.validationErrors.put(fieldName, StringUtils.capitalize(fieldName) + " length must be must be between 1-100 characters long.");
 		}
 	}
 }
