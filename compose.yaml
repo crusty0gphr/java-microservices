@@ -1,4 +1,38 @@
 services:
+  resource-service:
+    build:
+      context: ./resource-service
+      dockerfile: Dockerfile
+      target: run
+    environment:
+      SPRING_DATASOURCE_URL: ${RESOURCE_DB_URL}
+      SPRING_DATASOURCE_NAME: ${RESOURCE_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${RESOURCE_DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${RESOURCE_DB_PASSWORD}
+      SONG_SERVICE_URL: ${SONG_SERVICE_URL}
+    ports:
+      - "6969:6969"
+    depends_on:
+      - resource-db
+    networks:
+      - app-network
+
+  song-service:
+    build:
+      context: ./song-service
+      dockerfile: Dockerfile
+      target: run
+    environment:
+      SPRING_DATASOURCE_URL: ${SONG_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${SONG_DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SONG_DB_PASSWORD}
+    ports:
+      - "6868:6868"
+    depends_on:
+      - song-db
+    networks:
+      - app-network
+
   resource-db:
     image: postgres:17-alpine
     environment:
@@ -7,6 +41,10 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"  # Maps container port 5432 to host port 5432
+    volumes:
+      - ./init-scripts/resource-db/:/docker-entrypoint-initdb.d/
+    networks:
+      - app-network
 
   song-db:
     image: postgres:17-alpine
@@ -16,15 +54,11 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5433:5432"  # Maps container port 5432 to host port 5433 (to avoid conflict)
+    volumes:
+      - ./init-scripts/songs-db/:/docker-entrypoint-initdb.d/
+    networks:
+      - app-network
 
-# Related settings for application.yml:
-# 
-# For resource-service:
-# spring.datasource.url=jdbc:postgresql://localhost:5432/resource-db
-# spring.datasource.username=postgres
-# spring.datasource.password=postgres
-#
-# For song-service:
-# spring.datasource.url=jdbc:postgresql://localhost:5433/song-db
-# spring.datasource.username=postgres
-# spring.datasource.password=postgres
+networks:
+  app-network:
+    driver: bridge
