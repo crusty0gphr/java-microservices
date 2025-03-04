@@ -2,10 +2,10 @@ spring:
   application:
     name: song-service
   datasource:
-    name: "${RESOURCE_DB_NAME}"
-    username: "${SPRING_DATASOURCE_USERNAME}"
-    password: "${SPRING_DATASOURCE_PASSWORD}"
-    url: "${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/song-db}"
+    name: "${RESOURCE_DB_NAME:song-db}"
+    username: "${SPRING_DATASOURCE_USERNAME:postgres}"
+    password: "${SPRING_DATASOURCE_PASSWORD:postgres}"
+    url: "${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/song-db}"
 
 server:
   port: 6868
