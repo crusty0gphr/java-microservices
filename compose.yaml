@@ -1,4 +1,28 @@
 services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+      target: run
+    environment:
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  discovery-service:
+    build:
+      context: ./discovery-service
+      dockerfile: Dockerfile
+      target: run
+    environment:
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+    ports:
+      - "8761:8761"
+    networks:
+      - app-network
+
   resource-service:
     build:
       context: ./resource-service
@@ -10,9 +34,11 @@ services:
       SPRING_DATASOURCE_USERNAME: ${RESOURCE_DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${RESOURCE_DB_PASSWORD}
       SONG_SERVICE_URL: ${SONG_SERVICE_URL}
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
     ports:
       - "6969:6969"
     depends_on:
+      - discovery-service
       - resource-db
     networks:
       - app-network
@@ -22,13 +48,17 @@ services:
       context: ./song-service
       dockerfile: Dockerfile
       target: run
+    deploy:
+      replicas: 2
     environment:
       SPRING_DATASOURCE_URL: ${SONG_DB_URL}
       SPRING_DATASOURCE_USERNAME: ${SONG_DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SONG_DB_PASSWORD}
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
     ports:
-      - "6868:6868"
+      - "6767-6868:6868"
     depends_on:
+      - discovery-service
       - song-db
     networks:
       - app-network
@@ -37,10 +67,10 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_DB: resource-db
-      POSTGRES_USER: postgres  # Default, can be omitted if unchanged
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"  # Maps container port 5432 to host port 5432
+      - "5432:5432"
     volumes:
       - ./init-scripts/resource-db/:/docker-entrypoint-initdb.d/
     networks:
@@ -50,10 +80,10 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_DB: song-db
-      POSTGRES_USER: postgres  # Default, can be omitted if unchanged
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5433:5432"  # Maps container port 5432 to host port 5433 (to avoid conflict)
+      - "5433:5432"
     volumes:
       - ./init-scripts/songs-db/:/docker-entrypoint-initdb.d/
     networks:
