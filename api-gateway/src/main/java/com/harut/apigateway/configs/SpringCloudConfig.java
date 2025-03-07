@@ -11,10 +11,10 @@ public class SpringCloudConfig {
 	@Bean
 	public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
 		return builder.routes()
-				.route(r -> r.path("/song/**")
+				.route(r -> r.path("/songs/**")
 						.uri("lb://SONG-SERVICE"))
 
-				.route(r -> r.path("/resource/**")
+				.route(r -> r.path("/resources/**")
 						.uri("lb://RESOURCE-SERVICE"))
 
 				.build();

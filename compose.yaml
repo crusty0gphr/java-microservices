@@ -1,16 +1,4 @@
 services:
-  api-gateway:
-    build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
-      target: run
-    environment:
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-    ports:
-      - "8080:8080"
-    networks:
-      - app-network
-
   discovery-service:
     build:
       context: ./discovery-service
@@ -20,6 +8,20 @@ services:
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
     ports:
       - "8761:8761"
+    networks:
+      - app-network
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+      target: run
+    environment:
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - discovery-service
     networks:
       - app-network
 
